@@ -388,7 +388,7 @@ function nextGuideItem() {
   item.label.classList.add("active");
   item.label.scrollIntoView({ behavior: "smooth", block: "center" });
 
-  const spoken = "Kapitel: " + item.section + ". Punkt: " + item.text + ". Wenn erledigt, sage bitte: erledigt.";
+ const spoken = "Kapitel: " + item.section + ". Punkt: " + item.text + ".";
   voiceStatus.innerHTML = "Aktueller Punkt:<br><b>" + item.section + "</b><br>" + item.text + "<br><br>Bitte sage: <b>erledigt</b>";
   speak(spoken, listenForDone);
 }
