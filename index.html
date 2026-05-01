@@ -2,19 +2,280 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Patch Anleitung - Klick statt erledigt</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wohnmobil Checkliste 🚐</title>
 <style>
-body{font-family:Arial,sans-serif;line-height:1.5;padding:20px;max-width:900px;margin:auto}
-pre{background:#f3f4f6;padding:14px;border-radius:10px;overflow:auto}
-h1,h2{color:#1f7a73}
+:root {
+  --main: #1f7a73;
+  --main-dark: #155c57;
+  --bg: #eef3f4;
+  --card: #ffffff;
+  --text: #1f2933;
+  --muted: #6b7280;
+  --done: #d9f7e8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  background: linear-gradient(135deg, var(--main), var(--main-dark));
+  color: white;
+  padding: 22px 16px;
+  text-align: center;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+header p {
+  margin: 8px 0 0;
+  font-size: 15px;
+  opacity: 0.95;
+}
+
+main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 14px;
+}
+
+.topbar {
+  display: flex;
+  gap: 10px;
+  margin: 12px 0 18px;
+}
+
+button {
+  border: none;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.reset {
+  width: 100%;
+  background: #b91c1c;
+  color: white;
+}
+
+.print {
+  width: 100%;
+  background: #374151;
+  color: white;
+}
+
+.speak {
+  width: 100%;
+  background: #1f7a73;
+  color: white;
+}
+
+section {
+  background: var(--card);
+  border-radius: 18px;
+  padding: 14px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+}
+
+h2 {
+  margin: 2px 0 12px;
+  font-size: 22px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.item input {
+  width: 28px;
+  height: 28px;
+  accent-color: var(--main);
+  flex-shrink: 0;
+}
+
+.item.done {
+  background: var(--done);
+  text-decoration: line-through;
+  color: #276749;
+}
+
+.item.active {
+  outline: 4px solid #f59e0b;
+  background: #fff7ed;
+}
+
+.progress-box {
+  background: white;
+  border-radius: 18px;
+  padding: 14px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+}
+
+.progress-text {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.progress {
+  height: 18px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-inner {
+  height: 100%;
+  width: 0%;
+  background: var(--main);
+  transition: width 0.2s ease;
+}
+
+footer {
+  text-align: center;
+  color: var(--muted);
+  padding: 18px;
+  font-size: 14px;
+}
+
+@media (max-width: 520px) {
+  header h1 {
+    font-size: 24px;
+  }
+
+  .topbar {
+    flex-direction: column;
+  }
+
+  .item {
+    font-size: 17px;
+  }
+}
 </style>
 </head>
+
 <body>
-<h1>Änderung: Sprach-Check per Klick statt „erledigt“</h1>
+<header>
+  <h1>🚐 Wohnmobil-Checkliste</h1>
+  <p>Für Laika, Reisen, Stellplatz und Fellnase 🐶</p>
+</header>
 
-<p>In deiner <b>index.html</b> den kompletten JavaScript-Bereich von <code>&lt;script&gt;</code> bis <code>&lt;/script&gt;</code> durch folgenden Block ersetzen:</p>
+<main>
 
-<pre><code>&lt;script&gt;
+<div class="progress-box">
+  <div class="progress-text">
+    <span>Fortschritt</span>
+    <span id="progressText">0%</span>
+  </div>
+  <div class="progress">
+    <div class="progress-inner" id="progressBar"></div>
+  </div>
+</div>
+
+<div class="topbar">
+  <button class="speak" onclick="startVoiceGuide()">🎤 Sprach-Check starten</button>
+  <button class="reset" onclick="resetChecklist()">Alles zurücksetzen</button>
+  <button class="print" onclick="window.print()">Drucken</button>
+</div>
+
+<section>
+  <h2>🎤 Sprachsteuerung</h2>
+  <p id="voiceStatus" style="font-size:18px; line-height:1.4; margin:8px 0;">
+    Drücke <b>„Sprach-Check starten“</b>. Die App liest Kapitel und Punkte vor.
+    Danach sagst du einfach <b>„erledigt“</b>.
+  </p>
+</section>
+
+<section>
+  <h2>🚦 Vor der Abfahrt</h2>
+  <label class="item"><input type="checkbox"> Stromkabel abziehen und verstauen</label>
+  <label class="item"><input type="checkbox"> Gasflasche schließen</label>
+  <label class="item"><input type="checkbox"> Dachluken und Fenster schließen</label>
+  <label class="item"><input type="checkbox"> Trittstufe einfahren</label>
+  <label class="item"><input type="checkbox"> Sat-Anlage einfahren</label>
+  <label class="item"><input type="checkbox"> Auffahrkeile entfernen</label>
+  <label class="item"><input type="checkbox"> Fahrräder und Träger kontrollieren</label>
+</section>
+
+<section>
+  <h2>🏠 Innenraum</h2>
+  <label class="item"><input type="checkbox"> Schränke und Klappen verriegeln</label>
+  <label class="item"><input type="checkbox"> Kühlschrank sichern</label>
+  <label class="item"><input type="checkbox"> Wasserpumpe ausschalten</label>
+  <label class="item"><input type="checkbox"> Lose Gegenstände verstauen</label>
+  <label class="item"><input type="checkbox"> Fernseher und Fernbedienungen sichern</label>
+  <label class="item"><input type="checkbox"> Kaffeemaschine / Kleingeräte sichern</label>
+</section>
+
+<section>
+  <h2>🔌 Technik & Strom</h2>
+  <label class="item"><input type="checkbox"> Batterie-Stand prüfen</label>
+  <label class="item"><input type="checkbox"> Solar / Ladebooster kontrollieren</label>
+  <label class="item"><input type="checkbox"> CEE-Kabel eingepackt</label>
+  <label class="item"><input type="checkbox"> Adapter und Verlängerungskabel dabei</label>
+  <label class="item"><input type="checkbox"> Handy, iPad und Kamera geladen</label>
+</section>
+
+<section>
+  <h2>🐶 Fellnase</h2>
+  <label class="item"><input type="checkbox"> Leine und Geschirr eingepackt</label>
+  <label class="item"><input type="checkbox"> Futter und Näpfe dabei</label>
+  <label class="item"><input type="checkbox"> Wasser für unterwegs dabei</label>
+  <label class="item"><input type="checkbox"> Hundedecke / Körbchen dabei</label>
+  <label class="item"><input type="checkbox"> Kotbeutel eingepackt</label>
+</section>
+
+<section>
+  <h2>🏕️ Ankunft am Stellplatz</h2>
+  <label class="item"><input type="checkbox"> Fahrzeug gerade ausrichten</label>
+  <label class="item"><input type="checkbox"> Strom anschließen</label>
+  <label class="item"><input type="checkbox"> Wasserstand prüfen</label>
+  <label class="item"><input type="checkbox"> Sat / TV / WLAN einrichten</label>
+  <label class="item"><input type="checkbox"> Markise nur bei sicherem Wetter ausfahren</label>
+</section>
+
+<section>
+  <h2>✅ Letzter Rundgang</h2>
+  <label class="item"><input type="checkbox"> Außen einmal komplett ums Wohnmobil gehen</label>
+  <label class="item"><input type="checkbox"> Türen und Klappen kontrollieren</label>
+  <label class="item"><input type="checkbox"> Reifendruck optisch prüfen</label>
+  <label class="item"><input type="checkbox"> Spiegel einstellen</label>
+  <label class="item"><input type="checkbox"> Navi / Route starten</label>
+</section>
+
+</main>
+
+<footer>
+  Speichert automatisch auf diesem Gerät. Funktioniert auch offline als einfache HTML-App.
+</footer>
+
+<script>
 const checkboxes = document.querySelectorAll("input[type=checkbox]");
 const progressBar = document.getElementById("progressBar");
 const progressText = document.getElementById("progressText");
@@ -22,12 +283,13 @@ const voiceStatus = document.getElementById("voiceStatus");
 
 let guideItems = [];
 let currentGuideIndex = -1;
-let isVoiceGuideRunning = false;
+let recognition = null;
+let waitingForAnswer = false;
 
 function updateProgress() {
   let checked = 0;
 
-  checkboxes.forEach((cb, index) =&gt; {
+  checkboxes.forEach((cb, index) => {
     localStorage.setItem("wohnmobil_check_" + index, cb.checked);
     cb.closest(".item").classList.toggle("done", cb.checked);
     if (cb.checked) checked++;
@@ -38,21 +300,9 @@ function updateProgress() {
   progressText.textContent = percent + "%";
 }
 
-checkboxes.forEach((cb, index) =&gt; {
+checkboxes.forEach((cb, index) => {
   cb.checked = localStorage.getItem("wohnmobil_check_" + index) === "true";
-
-  cb.addEventListener("change", () =&gt; {
-    updateProgress();
-
-    if (isVoiceGuideRunning &amp;&amp; currentGuideIndex &gt;= 0) {
-      const currentItem = guideItems[currentGuideIndex];
-
-      if (currentItem &amp;&amp; cb === currentItem.checkbox &amp;&amp; cb.checked) {
-        currentItem.label.classList.remove("active");
-        setTimeout(nextGuideItem, 350);
-      }
-    }
-  });
+  cb.addEventListener("change", updateProgress);
 });
 
 function cleanForSpeech(text) {
@@ -73,7 +323,7 @@ function speak(text, afterSpeak) {
 
   const speech = new SpeechSynthesisUtterance(cleanForSpeech(text));
   speech.lang = "de-DE";
-  speech.rate = 0.85;
+  speech.rate = 0.92;
   speech.pitch = 1;
   speech.onend = function() {
     if (afterSpeak) afterSpeak();
@@ -85,13 +335,13 @@ function speak(text, afterSpeak) {
 function buildGuideItems() {
   guideItems = [];
 
-  document.querySelectorAll("main section").forEach(section =&gt; {
+  document.querySelectorAll("main section").forEach(section => {
     const title = section.querySelector("h2") ? section.querySelector("h2").innerText.trim() : "";
     const items = section.querySelectorAll(".item");
 
-    items.forEach(label =&gt; {
+    items.forEach(label => {
       const cb = label.querySelector("input[type=checkbox]");
-      if (cb &amp;&amp; !cb.checked) {
+      if (cb && !cb.checked) {
         guideItems.push({
           section: title,
           label: label,
@@ -104,7 +354,7 @@ function buildGuideItems() {
 }
 
 function clearActiveItems() {
-  document.querySelectorAll(".item").forEach(item =&gt; item.classList.remove("active"));
+  document.querySelectorAll(".item").forEach(item => item.classList.remove("active"));
 }
 
 function startVoiceGuide() {
@@ -113,58 +363,106 @@ function startVoiceGuide() {
 
   if (guideItems.length === 0) {
     voiceStatus.innerHTML = "✅ Alles erledigt. Gute Fahrt!";
-    speak("Super. Alle Punkte sind erledigt. Reinhold, Uschi und Molly wünschen gute Fahrt!");
+    speak("Super. Alle Punkte sind erledigt. Gute Fahrt!");
     return;
   }
 
   currentGuideIndex = -1;
-  isVoiceGuideRunning = true;
-  voiceStatus.innerHTML = "🎤 Sprach-Check läuft. Hake jeden vorgelesenen Punkt einfach per Klick auf das Kästchen ab.";
-  speak("Sprach-Check gestartet. Hake jeden vorgelesenen Punkt einfach per Klick auf das Kästchen ab.", nextGuideItem);
+  voiceStatus.innerHTML = "🎤 Sprach-Check läuft. Nach jedem Punkt bitte <b>„erledigt“</b> sagen.";
+  speak("Sprach-Check gestartet.", nextGuideItem);
 }
 
 function nextGuideItem() {
+  waitingForAnswer = false;
   clearActiveItems();
   currentGuideIndex++;
 
-  if (currentGuideIndex &gt;= guideItems.length) {
-    isVoiceGuideRunning = false;
+  if (currentGuideIndex >= guideItems.length) {
     voiceStatus.innerHTML = "✅ Sprach-Check beendet. Alle abgefragten Punkte sind erledigt.";
-    speak("Sprach-Check beendet. Alle abgefragten Punkte sind erledigt. Gute Fahrt!");
+    speak("Sprach Check beendet. Alle abgefragten Punkte sind erledigt. Gute Fahrt!");
     updateProgress();
     return;
   }
 
   const item = guideItems[currentGuideIndex];
-
-  if (item.checkbox.checked) {
-    nextGuideItem();
-    return;
-  }
-
   item.label.classList.add("active");
   item.label.scrollIntoView({ behavior: "smooth", block: "center" });
 
-  const spoken = "Jetzt: " + item.section + ". " + item.text + ".";
-  voiceStatus.innerHTML = "Aktueller Punkt:&lt;br&gt;&lt;b&gt;" + item.section + "&lt;/b&gt;&lt;br&gt;" + item.text + "&lt;br&gt;&lt;br&gt;Bitte Kästchen anklicken, wenn erledigt.";
-  speak(spoken);
+ const spoken = item.section + " – " + item.text + ".";
+  voiceStatus.innerHTML = "Aktueller Punkt:<br><b>" + item.section + "</b><br>" + item.text + "<br><br>Bitte sage: <b>erledigt</b>";
+  speak(spoken, listenForDone);
+}
+
+function listenForDone() {
+  waitingForAnswer = true;
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    voiceStatus.innerHTML += "<br><br>⚠️ Spracheingabe wird von diesem Browser nicht unterstützt. Du kannst den Punkt manuell abhaken.";
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.lang = "de-DE";
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onstart = function() {
+    voiceStatus.innerHTML += "<br><br>🎧 Ich höre zu...";
+  };
+
+  recognition.onresult = function(event) {
+    const text = event.results[0][0].transcript.toLowerCase();
+    voiceStatus.innerHTML += "<br>Du hast gesagt: <b>" + text + "</b>";
+
+    if (text.includes("erledigt") || text.includes("fertig") || text.includes("ja") || text.includes("okay")) {
+      markCurrentDone();
+    } else if (text.includes("weiter")) {
+      nextGuideItem();
+    } else {
+      speak("Ich habe dich nicht sicher verstanden. Bitte sage: erledigt.", listenForDone);
+    }
+  };
+
+  recognition.onerror = function() {
+    voiceStatus.innerHTML += "<br>⚠️ Ich konnte dich nicht verstehen. Bitte erneut versuchen.";
+    speak("Ich konnte dich nicht verstehen. Bitte sage noch einmal: erledigt.", listenForDone);
+  };
+
+  recognition.onend = function() {
+    waitingForAnswer = false;
+  };
+
+  recognition.start();
+}
+
+function markCurrentDone() {
+  const item = guideItems[currentGuideIndex];
+  if (item) {
+    item.checkbox.checked = true;
+    localStorage.setItem("wohnmobil_check_" + Array.from(checkboxes).indexOf(item.checkbox), "true");
+    updateProgress();
+    item.label.classList.remove("active");
+    speak("Erledigt gespeichert.", nextGuideItem);
+  }
 }
 
 function speakChecklist() {
   buildGuideItems();
 
   if (guideItems.length === 0) {
-    speak("Super. Alle Punkte der Wohnmobil Checkliste sind erledigt. Reinhold Uschi und Molly wünschen gute Fahrt!");
+    speak("Super. Alle Punkte der Wohnmobil Checkliste sind erledigt. Gute Fahrt wünschen Reinhold Uschi und Molly!");
   } else {
     let grouped = {};
-    guideItems.forEach(item =&gt; {
+    guideItems.forEach(item => {
       if (!grouped[item.section]) grouped[item.section] = [];
       grouped[item.section].push(item.text);
     });
 
     let text = "Es sind noch " + guideItems.length + " Punkte offen. ";
-    Object.keys(grouped).forEach(section =&gt; {
-      text += section + ". ";
+    Object.keys(grouped).forEach(section => {
+      text += "Kapitel: " + section + ". ";
       text += grouped[section].join(". ") + ". ";
     });
     speak(text);
@@ -173,22 +471,17 @@ function speakChecklist() {
 
 function resetChecklist() {
   if (confirm("Wirklich alle Häkchen zurücksetzen?")) {
-    window.speechSynthesis.cancel();
-    isVoiceGuideRunning = false;
-    currentGuideIndex = -1;
-
-    checkboxes.forEach((cb, index) =&gt; {
+    checkboxes.forEach((cb, index) => {
       cb.checked = false;
       localStorage.removeItem("wohnmobil_check_" + index);
     });
-
     clearActiveItems();
     updateProgress();
-    voiceStatus.innerHTML = "Drücke &lt;b&gt;„Sprach-Check starten“&lt;/b&gt;. Die App liest jeden offenen Punkt vor. Den Punkt erledigst du einfach per Klick auf das Kästchen.";
   }
 }
 
 updateProgress();
-&lt;/script&gt;</code></pre>
+</script>
+
 </body>
 </html>
