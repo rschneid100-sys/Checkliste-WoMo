@@ -183,7 +183,7 @@ footer {
 <body>
 <header>
   <h1>🚐 Wohnmobil-Checkliste</h1>
-  <p>Für Laika, Reisen, Stellplatz und Molly 🐶</p>
+  <p>Für Laika, Reisen, Stellplatz und Fellnase 🐶</p>
 </header>
 
 <main>
@@ -243,7 +243,7 @@ footer {
 </section>
 
 <section>
-  <h2>🐶 Molly</h2>
+  <h2>🐶 Fellnase</h2>
   <label class="item"><input type="checkbox"> Leine und Geschirr eingepackt</label>
   <label class="item"><input type="checkbox"> Futter und Näpfe dabei</label>
   <label class="item"><input type="checkbox"> Wasser für unterwegs dabei</label>
@@ -305,6 +305,14 @@ checkboxes.forEach((cb, index) => {
   cb.addEventListener("change", updateProgress);
 });
 
+function cleanForSpeech(text) {
+  return text
+    .replace(/[🚐🐶🚦🏠🔌🏕️✅🎤🌳]/g, "")
+    .replace(/Kapitel:\s*/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function speak(text, afterSpeak) {
   if (!("speechSynthesis" in window)) {
     alert("Dein Browser unterstützt leider keine Sprachausgabe.");
@@ -313,7 +321,7 @@ function speak(text, afterSpeak) {
 
   window.speechSynthesis.cancel();
 
-  const speech = new SpeechSynthesisUtterance(text);
+  const speech = new SpeechSynthesisUtterance(cleanForSpeech(text));
   speech.lang = "de-DE";
   speech.rate = 0.92;
   speech.pitch = 1;
@@ -380,7 +388,7 @@ function nextGuideItem() {
   item.label.classList.add("active");
   item.label.scrollIntoView({ behavior: "smooth", block: "center" });
 
-  const spoken = "item.section + ". Punkt: " + item.text + ". Wenn erledigt, sage bitte: erledigt.";
+  const spoken = "Kapitel: " + item.section + ". Punkt: " + item.text + ". Wenn erledigt, sage bitte: erledigt.";
   voiceStatus.innerHTML = "Aktueller Punkt:<br><b>" + item.section + "</b><br>" + item.text + "<br><br>Bitte sage: <b>erledigt</b>";
   speak(spoken, listenForDone);
 }
@@ -454,7 +462,7 @@ function speakChecklist() {
 
     let text = "Es sind noch " + guideItems.length + " Punkte offen. ";
     Object.keys(grouped).forEach(section => {
-      text += "section + ". ";
+      text += "Kapitel: " + section + ". ";
       text += grouped[section].join(". ") + ". ";
     });
     speak(text);
@@ -477,3 +485,4 @@ updateProgress();
 
 </body>
 </html>
+
