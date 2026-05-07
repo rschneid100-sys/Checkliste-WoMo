@@ -429,7 +429,18 @@ function saveStellplatz() {
   );
 
   renderSavedStellplatz();
-  speak("Stellplatz gespeichert.");
+
+  // Nach dem Speichern Eingaben und GPS-Zwischenspeicher zurücksetzen,
+  // damit der nächste Stellplatz nicht versehentlich dieselben Koordinaten bekommt.
+  document.getElementById("platzName").value = "";
+  document.getElementById("platzNotiz").value = "";
+  document.getElementById("gpsStatus").innerHTML =
+    "Noch kein Standort erfasst. Bitte für den nächsten Stellplatz erneut „Standort holen“ drücken.";
+
+  currentLatitude = null;
+  currentLongitude = null;
+
+  speak("Stellplatz gespeichert. Für den nächsten Stellplatz bitte erneut Standort holen.");
 }
 
 function deleteStellplatz(id) {
