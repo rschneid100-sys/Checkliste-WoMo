@@ -322,6 +322,11 @@ footer {
   <h2>📍 Aktuellen Stellplatz speichern</h2>
   <div class="stellplatz-box">
     <input id="platzName" type="text" placeholder="Name des Stellplatzes, z. B. Breitmatten Lahr">
+
+    <input id="platzAdresse" type="text" placeholder="Adresse oder Ort (optional)">
+
+    <input id="platzGPS" type="text" placeholder="GPS manuell eingeben, z. B. 48.339000,7.873000 (optional)">
+
     <textarea id="platzNotiz" placeholder="Notiz, z. B. ruhig, Strom vorhanden, gut für Molly, schöne Radwege"></textarea>
 
     <div class="stellplatz-actions">
@@ -403,6 +408,8 @@ function getCurrentLocation() {
 
 function saveStellplatz() {
   const name = document.getElementById("platzName").value.trim();
+  const adresse = document.getElementById("platzAdresse").value.trim();
+  const gpsInput = document.getElementById("platzGPS").value.trim();
   const note = document.getElementById("platzNotiz").value.trim();
 
   if (!name) {
@@ -410,9 +417,17 @@ function saveStellplatz() {
     return;
   }
 
-  if (currentLatitude === null || currentLongitude === null) {
-    alert("Bitte zuerst „Standort holen“ drücken, damit dieser Stellplatz eigene GPS-Daten bekommt.");
-    return;
+  let lat = currentLatitude;
+  let lng = currentLongitude;
+
+  // Manuelle GPS-Eingabe überschreibt den aktuellen Standort
+  if (gpsInput) {
+    const parts = gpsInput.split(",");
+
+    if (parts.length === 2) {
+      lat = Number(parts[0].trim());
+      lng = Number(parts[1].trim());
+    }
   }
 
   const places = JSON.parse(localStorage.getItem("wohnmobil_stellplaetze") || "[]");
@@ -420,25 +435,33 @@ function saveStellplatz() {
   const data = {
     id: Date.now(),
     name: name,
+    adresse: adresse,
     note: note,
-    latitude: Number(currentLatitude),
-    longitude: Number(currentLongitude),
+    latitude: lat,
+    longitude: lng,
     date: new Date().toLocaleString("de-DE")
   };
 
   places.unshift(data);
-  localStorage.setItem("wohnmobil_stellplaetze", JSON.stringify(places));
+
+  localStorage.setItem(
+    "wohnmobil_stellplaetze",
+    JSON.stringify(places)
+  );
 
   document.getElementById("platzName").value = "";
+  document.getElementById("platzAdresse").value = "";
+  document.getElementById("platzGPS").value = "";
   document.getElementById("platzNotiz").value = "";
+
   document.getElementById("gpsStatus").innerHTML =
-    "Noch kein Standort erfasst. Bitte für den nächsten Stellplatz erneut „Standort holen“ drücken.";
+    "Noch kein Standort erfasst.";
 
   currentLatitude = null;
   currentLongitude = null;
 
   renderSavedStellplatz();
-  speak("Stellplatz gespeichert. Für den nächsten Stellplatz bitte erneut Standort holen.");
+  speak("Stellplatz gespeichert.");
 }
 
 function deleteStellplatz(id) {
@@ -494,6 +517,7 @@ function renderSavedStellplatz() {
       '<div class="stellplatz-card">' +
       '<b>📍 ' + data.name + '</b><br>' +
       '🕒 ' + data.date + '<br>' +
+      (data.adresse ? '📌 ' + data.adresse + '<br>' : '') +
       (data.note ? '📝 ' + data.note + '<br>' : '') +
       (hasGps
         ? '🌐 ' + lat.toFixed(6) + ', ' + lng.toFixed(6)
