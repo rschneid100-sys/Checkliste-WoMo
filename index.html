@@ -463,10 +463,12 @@ function openMaps(latitude, longitude) {
     return;
   }
 
-  const url = "https://www.google.com/maps/search/?api=1&query=" +
-    encodeURIComponent(lat.toFixed(6) + "," + lng.toFixed(6));
+  // Für iPhone/Safari zuverlässiger:
+  // Die Koordinaten werden als Suchziel UND als Kartenmittelpunkt übergeben.
+  const coords = lat.toFixed(6) + "," + lng.toFixed(6);
+  const url = "https://www.google.com/maps?q=" + encodeURIComponent(coords);
 
-  window.open(url, "_blank");
+  window.location.href = url;
 }
 
 function renderSavedStellplatz() {
@@ -497,7 +499,9 @@ function renderSavedStellplatz() {
         ? '🌐 ' + lat.toFixed(6) + ', ' + lng.toFixed(6)
         : '🌐 Keine GPS-Daten gespeichert') +
       (hasGps
-        ? '<p><button class="print" onclick="openMaps(' + lat + ',' + lng + ')">🗺️ In Google Maps öffnen</button></p>'
+        ? '<p><button class="print" onclick="openMaps(' + lat + ',' + lng + ')">🗺️ In Google Maps öffnen</button></p>' +
+          '<p><a target="_blank" href="https://maps.apple.com/?q=' + lat.toFixed(6) + ',' + lng.toFixed(6) + '">🍎 In Apple Karten öffnen</a></p>' +
+          '<p style="font-size:14px;color:#6b7280;">GPS-Test: ' + lat.toFixed(6) + ', ' + lng.toFixed(6) + '</p>'
         : '') +
       '<button class="reset" style="margin-top:10px;" onclick="deleteStellplatz(' + data.id + ')">🗑️ Löschen</button>' +
       '</div>';
