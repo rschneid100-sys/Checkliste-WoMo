@@ -325,9 +325,9 @@ footer {
     <textarea id="platzNotiz" placeholder="Notiz, z. B. ruhig, Strom vorhanden, gut für Molly, schöne Radwege"></textarea>
 
     <div class="stellplatz-actions">
-      <button class="speak" onclick="getCurrentLocation()">📡 Standort holen</button>
-      <button class="print" onclick="saveStellplatz()">💾 Speichern</button>
-    </div>
+     <button class="speak" onclick="getCurrentLocation()">📡 Standort holen</button>
+<button class="print" onclick="saveStellplatz()">💾 Speichern</button>
+<button class="reset" onclick="deleteStellplatz()">🗑️ Löschen</button>
 
     <p id="gpsStatus" style="font-size:16px; color:#374151; margin:6px 0;">
       Noch kein Standort erfasst.
@@ -421,7 +421,26 @@ function saveStellplatz() {
   renderSavedStellplatz();
   speak("Stellplatz gespeichert.");
 }
+function deleteStellplatz() {
+  if (!confirm("Gespeicherten Stellplatz wirklich löschen?")) {
+    return;
+  }
 
+  localStorage.removeItem("aktueller_stellplatz");
+
+  currentLatitude = null;
+  currentLongitude = null;
+
+  document.getElementById("platzName").value = "";
+  document.getElementById("platzNotiz").value = "";
+
+  document.getElementById("gpsStatus").innerHTML =
+    "Noch kein Standort erfasst.";
+
+  document.getElementById("savedStellplatz").innerHTML = "";
+
+  speak("Der gespeicherte Stellplatz wurde gelöscht.");
+}
 function renderSavedStellplatz() {
   const container = document.getElementById("savedStellplatz");
   const raw = localStorage.getItem("aktueller_stellplatz");
