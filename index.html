@@ -379,13 +379,14 @@ function getCurrentLocation() {
 
   navigator.geolocation.getCurrentPosition(
     position => {
-      currentLatitude = position.coords.latitude;
-      currentLongitude = position.coords.longitude;
+      currentLatitude = Number(position.coords.latitude);
+      currentLongitude = Number(position.coords.longitude);
 
       gpsStatus.innerHTML =
         "✅ Standort erfasst:<br>" +
         "Breite: " + currentLatitude.toFixed(6) + "<br>" +
-        "Länge: " + currentLongitude.toFixed(6);
+        "Länge: " + currentLongitude.toFixed(6) + "<br>" +
+        "Genauigkeit: ca. " + Math.round(position.coords.accuracy) + " Meter";
     },
     error => {
       gpsStatus.innerHTML =
@@ -394,12 +395,11 @@ function getCurrentLocation() {
     },
     {
       enableHighAccuracy: true,
-      timeout: 10000,
+      timeout: 15000,
       maximumAge: 0
     }
   );
 }
-
 
 function saveStellplatz() {
   const name = document.getElementById("platzName").value.trim();
@@ -410,28 +410,25 @@ function saveStellplatz() {
     return;
   }
 
-  const existing = JSON.parse(localStorage.getItem("wohnmobil_stellplaetze") || "[]");
+  if (currentLatitude === null || currentLongitude === null) {
+    alert("Bitte zuerst „Standort holen“ drücken, damit dieser Stellplatz eigene GPS-Daten bekommt.");
+    return;
+  }
+
+  const places = JSON.parse(localStorage.getItem("wohnmobil_stellplaetze") || "[]");
 
   const data = {
     id: Date.now(),
     name: name,
     note: note,
-    latitude: currentLatitude,
-    longitude: currentLongitude,
+    latitude: Number(currentLatitude),
+    longitude: Number(currentLongitude),
     date: new Date().toLocaleString("de-DE")
   };
 
-  existing.unshift(data);
+  places.unshift(data);
+  localStorage.setItem("wohnmobil_stellplaetze", JSON.stringify(places));
 
-  localStorage.setItem(
-    "wohnmobil_stellplaetze",
-    JSON.stringify(existing)
-  );
-
-  renderSavedStellplatz();
-
-  // Nach dem Speichern Eingaben und GPS-Zwischenspeicher zurücksetzen,
-  // damit der nächste Stellplatz nicht versehentlich dieselben Koordinaten bekommt.
   document.getElementById("platzName").value = "";
   document.getElementById("platzNotiz").value = "";
   document.getElementById("gpsStatus").innerHTML =
@@ -440,6 +437,7 @@ function saveStellplatz() {
   currentLatitude = null;
   currentLongitude = null;
 
+  renderSavedStellplatz();
   speak("Stellplatz gespeichert. Für den nächsten Stellplatz bitte erneut Standort holen.");
 }
 
@@ -448,17 +446,27 @@ function deleteStellplatz(id) {
     return;
   }
 
-  let existing = JSON.parse(localStorage.getItem("wohnmobil_stellplaetze") || "[]");
+  let places = JSON.parse(localStorage.getItem("wohnmobil_stellplaetze") || "[]");
+  places = places.filter(item => Number(item.id) !== Number(id));
 
-  existing = existing.filter(item => item.id !== id);
-
-  localStorage.setItem(
-    "wohnmobil_stellplaetze",
-    JSON.stringify(existing)
-  );
-
+  localStorage.setItem("wohnmobil_stellplaetze", JSON.stringify(places));
   renderSavedStellplatz();
   speak("Der Stellplatz wurde gelöscht.");
+}
+
+function openMaps(latitude, longitude) {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    alert("Für diesen Stellplatz sind keine gültigen GPS-Daten gespeichert.");
+    return;
+  }
+
+  const url = "https://www.google.com/maps/search/?api=1&query=" +
+    encodeURIComponent(lat.toFixed(6) + "," + lng.toFixed(6));
+
+  window.open(url, "_blank");
 }
 
 function renderSavedStellplatz() {
@@ -476,31 +484,27 @@ function renderSavedStellplatz() {
   let htmlContent = "<h3>📚 Meine Stellplätze</h3>";
 
   places.forEach(data => {
-    let mapsLink = "";
-
-    if (data.latitude && data.longitude) {
-      mapsLink =
-        '<p><a target="_blank" href="https://www.google.com/maps/search/?api=1&query=' +
-        data.latitude + ',' + data.longitude +
-        '">🗺️ In Google Maps öffnen</a></p>';
-    }
+    const lat = Number(data.latitude);
+    const lng = Number(data.longitude);
+    const hasGps = Number.isFinite(lat) && Number.isFinite(lng);
 
     htmlContent +=
       '<div class="stellplatz-card">' +
       '<b>📍 ' + data.name + '</b><br>' +
       '🕒 ' + data.date + '<br>' +
       (data.note ? '📝 ' + data.note + '<br>' : '') +
-      (data.latitude && data.longitude
-        ? '🌐 ' + data.latitude.toFixed(6) + ', ' + data.longitude.toFixed(6)
+      (hasGps
+        ? '🌐 ' + lat.toFixed(6) + ', ' + lng.toFixed(6)
         : '🌐 Keine GPS-Daten gespeichert') +
-      mapsLink +
+      (hasGps
+        ? '<p><button class="print" onclick="openMaps(' + lat + ',' + lng + ')">🗺️ In Google Maps öffnen</button></p>'
+        : '') +
       '<button class="reset" style="margin-top:10px;" onclick="deleteStellplatz(' + data.id + ')">🗑️ Löschen</button>' +
       '</div>';
   });
 
   container.innerHTML = htmlContent;
 }
-
 
 function updateProgress() {
   let checked = 0;
