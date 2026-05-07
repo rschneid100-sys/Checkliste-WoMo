@@ -199,7 +199,10 @@ footer {
 </div>
 
 <div class="topbar">
-  <button class="speak" onclick="startVoiceGuide()">🎤 Sprach-Check starten</button>
+<button class="speak" onclick="startVoiceGuide()">🎤 Sprach-Check starten</button>
+<button class="print" onclick="repeatCurrentItem()">🔁 Wiederholen</button>
+<button class="print" onclick="nextGuideItem()">⏭️ Weiter</button>
+<button class="reset" onclick="pauseVoiceGuide()">⏸️ Pause</button> starten</button>
   <button class="reset" onclick="resetChecklist()">Alles zurücksetzen</button>
   <button class="print" onclick="window.print()">Drucken</button>
 </div>
@@ -304,7 +307,34 @@ checkboxes.forEach((cb, index) => {
   cb.checked = localStorage.getItem("wohnmobil_check_" + index) === "true";
 
   cb.addEventListener("change", () => {
-    updateProgress();
+function repeatCurrentItem() {
+  if (
+    currentGuideIndex >= 0 &&
+    currentGuideIndex < guideItems.length
+  ) {
+    const item = guideItems[currentGuideIndex];
+
+    let spoken = "";
+
+    if (item.section !== lastSpokenSection) {
+      spoken = item.section + " – " + item.text + ".";
+    } else {
+      spoken = item.text + ".";
+    }
+
+    speak(spoken);
+  }
+}
+
+function pauseVoiceGuide() {
+  window.speechSynthesis.cancel();
+
+  voiceStatus.innerHTML =
+    "⏸️ Sprach-Check pausiert.";
+
+  isVoiceGuideRunning = false;
+}    
+updateProgress();
 
     if (isVoiceGuideRunning && currentGuideIndex >= 0) {
       const currentItem = guideItems[currentGuideIndex];
