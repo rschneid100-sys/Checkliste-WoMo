@@ -199,10 +199,10 @@ footer {
 </div>
 
 <div class="topbar">
-<button class="speak" onclick="startVoiceGuide()">🎤 Sprach-Check starten</button>
-<button class="print" onclick="repeatCurrentItem()">🔁 Wiederholen</button>
-<button class="print" onclick="nextGuideItem()">⏭️ Weiter</button>
-<button class="reset" onclick="pauseVoiceGuide()">⏸️ Pause</button> starten</button>
+  <button class="speak" onclick="startVoiceGuide()">🎤 Sprach-Check starten</button>
+  <button class="print" onclick="repeatCurrentItem()">🔁 Wiederholen</button>
+  <button class="print" onclick="skipToNextItem()">⏭️ Weiter</button>
+  <button class="reset" onclick="pauseVoiceGuide()">⏸️ Pause</button>
   <button class="reset" onclick="resetChecklist()">Alles zurücksetzen</button>
   <button class="print" onclick="window.print()">Drucken</button>
 </div>
@@ -210,8 +210,8 @@ footer {
 <section>
   <h2>🎤 Sprachsteuerung</h2>
   <p id="voiceStatus" style="font-size:18px; line-height:1.4; margin:8px 0;">
-    Drücke <b>„Sprach-Check starten“</b>. Die App liest die offenen Punkte vor.
-    Erledigte Punkte hakst du einfach per Klick auf das Kästchen ab.
+    Drücke <b>„Sprach-Check starten“</b>. Die App liest Kapitel und Punkte vor.
+    Danach sagst du einfach <b>„erledigt“</b>.
   </p>
 </section>
 
@@ -307,34 +307,7 @@ checkboxes.forEach((cb, index) => {
   cb.checked = localStorage.getItem("wohnmobil_check_" + index) === "true";
 
   cb.addEventListener("change", () => {
-function repeatCurrentItem() {
-  if (
-    currentGuideIndex >= 0 &&
-    currentGuideIndex < guideItems.length
-  ) {
-    const item = guideItems[currentGuideIndex];
-
-    let spoken = "";
-
-    if (item.section !== lastSpokenSection) {
-      spoken = item.section + " – " + item.text + ".";
-    } else {
-      spoken = item.text + ".";
-    }
-
-    speak(spoken);
-  }
-}
-
-function pauseVoiceGuide() {
-  window.speechSynthesis.cancel();
-
-  voiceStatus.innerHTML =
-    "⏸️ Sprach-Check pausiert.";
-
-  isVoiceGuideRunning = false;
-}    
-updateProgress();
+    updateProgress();
 
     if (isVoiceGuideRunning && currentGuideIndex >= 0) {
       const currentItem = guideItems[currentGuideIndex];
@@ -349,7 +322,7 @@ updateProgress();
 
 function cleanForSpeech(text) {
   return text
-    .replace(/[🚐🐶🚦🏠🔌🏕️✅🎤🌳]/g, "")
+    .replace(/[🚐🐶🚦🏠🔌🏕️✅🎤🌳⏸️🔁⏭️]/g, "")
     .replace(/Kapitel:\s*/g, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -456,11 +429,48 @@ function nextGuideItem() {
   speak(spoken);
 }
 
+function repeatCurrentItem() {
+  if (currentGuideIndex < 0 || currentGuideIndex >= guideItems.length) {
+    speak("Es ist gerade kein aktiver Punkt zum Wiederholen vorhanden.");
+    return;
+  }
+
+  const item = guideItems[currentGuideIndex];
+
+  if (!item) {
+    speak("Es ist gerade kein aktiver Punkt zum Wiederholen vorhanden.");
+    return;
+  }
+
+  const spoken = item.section + " – " + item.text + ".";
+  speak(spoken);
+}
+
+function skipToNextItem() {
+  if (!isVoiceGuideRunning) {
+    speak("Der Sprach-Check ist gerade nicht gestartet.");
+    return;
+  }
+
+  if (currentGuideIndex >= 0 && currentGuideIndex < guideItems.length) {
+    guideItems[currentGuideIndex].label.classList.remove("active");
+  }
+
+  nextGuideItem();
+}
+
+function pauseVoiceGuide() {
+  window.speechSynthesis.cancel();
+  isVoiceGuideRunning = false;
+  clearActiveItems();
+  voiceStatus.innerHTML = "⏸️ Sprach-Check pausiert. Zum Fortsetzen bitte erneut „Sprach-Check starten“ drücken.";
+}
+
 function speakChecklist() {
   buildGuideItems();
 
   if (guideItems.length === 0) {
-    speak("Super. Alle Punkte der Wohnmobil Checkliste sind erledigt. Reinhold, Uschi und Molly wünschen gute Fahrt!");
+    speak("Super. Alle Punkte der Wohnmobil Checkliste sind erledigt. Gute Fahrt Reinhold, Uschi und Molly!");
   } else {
     let grouped = {};
     guideItems.forEach(item => {
