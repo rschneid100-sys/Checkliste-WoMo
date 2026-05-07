@@ -157,6 +157,50 @@ h2 {
   transition: width 0.2s ease;
 }
 
+
+.stellplatz-box {
+  display: grid;
+  gap: 10px;
+}
+
+.stellplatz-box input,
+.stellplatz-box textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  font-size: 16px;
+  font-family: Arial, sans-serif;
+}
+
+.stellplatz-box textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.stellplatz-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.stellplatz-actions button {
+  width: 100%;
+}
+
+.stellplatz-card {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 12px;
+  margin-top: 10px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.stellplatz-card b {
+  color: var(--main-dark);
+}
+
 footer {
   text-align: center;
   color: var(--muted);
@@ -205,6 +249,7 @@ footer {
   <button class="reset" onclick="pauseVoiceGuide()">⏸️ Pause</button>
   <button class="reset" onclick="resetChecklist()">Alles zurücksetzen</button>
   <button class="print" onclick="window.print()">Drucken</button>
+  <button class="speak" onclick="scrollToStellplatz()">📍 Stellplatz</button>
 </div>
 
 <section>
@@ -272,6 +317,26 @@ footer {
   <label class="item"><input type="checkbox"> Navi / Route starten</label>
 </section>
 
+
+<section id="stellplatzSection">
+  <h2>📍 Aktuellen Stellplatz speichern</h2>
+  <div class="stellplatz-box">
+    <input id="platzName" type="text" placeholder="Name des Stellplatzes, z. B. Breitmatten Lahr">
+    <textarea id="platzNotiz" placeholder="Notiz, z. B. ruhig, Strom vorhanden, gut für Molly, schöne Radwege"></textarea>
+
+    <div class="stellplatz-actions">
+      <button class="speak" onclick="getCurrentLocation()">📡 Standort holen</button>
+      <button class="print" onclick="saveStellplatz()">💾 Speichern</button>
+    </div>
+
+    <p id="gpsStatus" style="font-size:16px; color:#374151; margin:6px 0;">
+      Noch kein Standort erfasst.
+    </p>
+
+    <div id="savedStellplatz"></div>
+  </div>
+</section>
+
 </main>
 
 <footer>
@@ -284,10 +349,112 @@ const progressBar = document.getElementById("progressBar");
 const progressText = document.getElementById("progressText");
 const voiceStatus = document.getElementById("voiceStatus");
 
+let currentLatitude = null;
+let currentLongitude = null;
+
 let guideItems = [];
 let currentGuideIndex = -1;
 let isVoiceGuideRunning = false;
 let lastSpokenSection = "";
+
+
+function scrollToStellplatz() {
+  const section = document.getElementById("stellplatzSection");
+  if (section) {
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+function getCurrentLocation() {
+  const gpsStatus = document.getElementById("gpsStatus");
+
+  if (!navigator.geolocation) {
+    gpsStatus.innerHTML = "⚠️ Dein Gerät unterstützt keine Standortermittlung.";
+    speak("Dein Gerät unterstützt keine Standortermittlung.");
+    return;
+  }
+
+  gpsStatus.innerHTML = "📡 Standort wird ermittelt ...";
+  speak("Ich ermittle deinen aktuellen Stellplatz.");
+
+  navigator.geolocation.getCurrentPosition(
+    position => {
+      currentLatitude = position.coords.latitude;
+      currentLongitude = position.coords.longitude;
+
+      gpsStatus.innerHTML =
+        "✅ Standort erfasst:<br>" +
+        "Breite: " + currentLatitude.toFixed(6) + "<br>" +
+        "Länge: " + currentLongitude.toFixed(6);
+    },
+    error => {
+      gpsStatus.innerHTML =
+        "⚠️ Standort konnte nicht ermittelt werden. Bitte Standortfreigabe erlauben.";
+      speak("Der Standort konnte nicht ermittelt werden. Bitte Standortfreigabe erlauben.");
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    }
+  );
+}
+
+function saveStellplatz() {
+  const name = document.getElementById("platzName").value.trim();
+  const note = document.getElementById("platzNotiz").value.trim();
+
+  if (!name) {
+    alert("Bitte zuerst einen Namen für den Stellplatz eingeben.");
+    return;
+  }
+
+  const data = {
+    name: name,
+    note: note,
+    latitude: currentLatitude,
+    longitude: currentLongitude,
+    date: new Date().toLocaleString("de-DE")
+  };
+
+  localStorage.setItem("aktueller_stellplatz", JSON.stringify(data));
+  renderSavedStellplatz();
+  speak("Stellplatz gespeichert.");
+}
+
+function renderSavedStellplatz() {
+  const container = document.getElementById("savedStellplatz");
+  const raw = localStorage.getItem("aktueller_stellplatz");
+
+  if (!container) return;
+
+  if (!raw) {
+    container.innerHTML = "";
+    return;
+  }
+
+  const data = JSON.parse(raw);
+
+  let mapsLink = "";
+  if (data.latitude && data.longitude) {
+    mapsLink =
+      '<p><a target="_blank" href="https://www.google.com/maps/search/?api=1&query=' +
+      data.latitude + ',' + data.longitude +
+      '">🗺️ In Google Maps öffnen</a></p>';
+  }
+
+  container.innerHTML =
+    '<div class="stellplatz-card">' +
+    '<b>Gespeicherter Stellplatz</b><br>' +
+    '📍 ' + data.name + '<br>' +
+    '🕒 ' + data.date + '<br>' +
+    (data.note ? '📝 ' + data.note + '<br>' : '') +
+    (data.latitude && data.longitude
+      ? '🌐 ' + data.latitude.toFixed(6) + ', ' + data.longitude.toFixed(6)
+      : '🌐 Keine GPS-Daten gespeichert') +
+    mapsLink +
+    '</div>';
+}
 
 function updateProgress() {
   let checked = 0;
@@ -308,6 +475,7 @@ checkboxes.forEach((cb, index) => {
 
   cb.addEventListener("change", () => {
     updateProgress();
+renderSavedStellplatz();
 
     if (isVoiceGuideRunning && currentGuideIndex >= 0) {
       const currentItem = guideItems[currentGuideIndex];
@@ -400,6 +568,7 @@ function nextGuideItem() {
     voiceStatus.innerHTML = "✅ Sprach-Check beendet. Alle abgefragten Punkte sind erledigt.";
     speak("Sprach-Check beendet. Alle abgefragten Punkte sind erledigt. Gute Fahrt Reinhold, Uschi und Molly!");
     updateProgress();
+renderSavedStellplatz();
     return;
   }
 
@@ -501,6 +670,7 @@ function resetChecklist() {
 
     clearActiveItems();
     updateProgress();
+renderSavedStellplatz();
 
     voiceStatus.innerHTML =
       "Drücke <b>„Sprach-Check starten“</b>. Die App liest jeden offenen Punkt vor. " +
@@ -509,6 +679,7 @@ function resetChecklist() {
 }
 
 updateProgress();
+renderSavedStellplatz();
 </script>
 
 </body>
