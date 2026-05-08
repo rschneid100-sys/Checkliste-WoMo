@@ -54,15 +54,6 @@ main {
   display: flex;
   gap: 10px;
   margin: 12px 0 18px;
-
-  position: sticky;
-  top: 0;
-  z-index: 999;
-
-  background: var(--bg);
-  padding: 10px 0;
-
-  overflow-x: auto;
 }
 
 button {
@@ -220,6 +211,32 @@ h2 {
   margin: 12px 0;
 }
 
+
+.floating-controls {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
+  background: rgba(238, 243, 244, 0.96);
+  padding: 8px;
+  border-radius: 18px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.22);
+}
+
+.floating-controls button {
+  flex: 1;
+  font-size: 15px;
+  padding: 12px 8px;
+  white-space: nowrap;
+}
+
+body {
+  padding-bottom: 92px;
+}
+
 footer {
   text-align: center;
   color: var(--muted);
@@ -263,9 +280,6 @@ footer {
 
 <div class="topbar">
   <button class="speak" onclick="startVoiceGuide()">🎤 Sprach-Check starten</button>
-  <button class="print" onclick="repeatCurrentItem()">🔁 Wiederholen</button>
-  <button class="print" onclick="skipToNextItem()">⏭️ Überspringen</button>
-  <button class="reset" onclick="pauseVoiceGuide()">⏸️ Pause</button>
   <button class="reset" onclick="resetChecklist()">Alles zurücksetzen</button>
   <button class="print" onclick="window.print()">Drucken</button>
   <button class="speak" onclick="scrollToStellplatz()">📍 Stellplatz</button>
@@ -372,6 +386,13 @@ footer {
 </section>
 
 </main>
+
+<div class="floating-controls">
+  <button class="print" onclick="repeatCurrentItem()">🔁 Wiederholen</button>
+  <button class="print" onclick="skipToNextItem()">⏭️ Überspringen</button>
+  <button class="reset" onclick="pauseVoiceGuide()">⏸️ Pause</button>
+</div>
+
 
 <footer>
   Speichert automatisch auf diesem Gerät. Funktioniert auch offline als einfache HTML-App.
