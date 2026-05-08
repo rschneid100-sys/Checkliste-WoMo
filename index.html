@@ -727,7 +727,7 @@ function startVoiceGuide() {
 
   if (guideItems.length === 0) {
     voiceStatus.innerHTML = "✅ Alles erledigt. Gute Fahrt!";
-    speak("Super. Alle Punkte sind erledigt. Gute Fahrt Reinhold, Uschi und Molly!");
+    speak("Super. Alle Punkte sind erledigt. Gute Fahrt wünschen Reinhold Uschi und Molly!");
     return;
   }
 
@@ -736,7 +736,7 @@ function startVoiceGuide() {
   lastSpokenSection = "";
 
   voiceStatus.innerHTML = "🎤 Sprach-Check läuft. Hake jeden vorgelesenen Punkt einfach per Klick auf das Kästchen ab.";
-  speak("Hallo Reinhold, der Sprach-Check startet jetzt. Wenn ein Punkt erledigt ist, klicke einfach auf das Kästchen.", nextGuideItem);
+  speak("Hallo Camper, der Sprach-Check startet jetzt. Wenn ein Punkt erledigt ist, klicke einfach auf das Kästchen.", nextGuideItem);
 }
 
 function nextGuideItem() {
@@ -747,7 +747,7 @@ function nextGuideItem() {
     isVoiceGuideRunning = false;
     lastSpokenSection = "";
     voiceStatus.innerHTML = "✅ Sprach-Check beendet. Alle abgefragten Punkte sind erledigt.";
-    speak("Sprach-Check beendet. Alle abgefragten Punkte sind erledigt. Gute Fahrt Reinhold, Uschi und Molly!");
+    speak("Sprach-Check beendet. Alle abgefragten Punkte sind erledigt. Gute Fahrt wünschen Reinhold Uschi und Molly!");
     updateProgress();
 renderSavedStellplatz();
     return;
