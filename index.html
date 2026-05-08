@@ -201,6 +201,16 @@ h2 {
   color: var(--main-dark);
 }
 
+
+.stellplatz-search {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  font-size: 16px;
+  margin: 12px 0;
+}
+
 footer {
   text-align: center;
   color: var(--muted);
@@ -338,7 +348,17 @@ footer {
       Noch kein Standort erfasst.
     </p>
 
-    <div id="savedStellplatz"></div>
+    
+<input
+  id="stellplatzSearch"
+  class="stellplatz-search"
+  type="text"
+  placeholder="🔍 Stellplatz suchen (Ort, Name, Notiz ...)"
+  oninput="renderSavedStellplatz()"
+>
+
+<div id="savedStellplatz"></div>
+
   </div>
 </section>
 
@@ -494,21 +514,36 @@ function openMaps(latitude, longitude) {
   window.location.href = url;
 }
 
+
 function renderSavedStellplatz() {
   const container = document.getElementById("savedStellplatz");
 
   if (!container) return;
 
+  const searchText = (
+    document.getElementById("stellplatzSearch")?.value || ""
+  ).toLowerCase();
+
   const places = JSON.parse(localStorage.getItem("wohnmobil_stellplaetze") || "[]");
 
-  if (places.length === 0) {
-    container.innerHTML = "<p>Noch keine Stellplätze gespeichert.</p>";
+  let filteredPlaces = places.filter(data => {
+    const combined =
+      (data.name || "") + " " +
+      (data.adresse || "") + " " +
+      (data.note || "");
+
+    return combined.toLowerCase().includes(searchText);
+  });
+
+  if (filteredPlaces.length === 0) {
+    container.innerHTML = "<p>Keine passenden Stellplätze gefunden.</p>";
     return;
   }
 
-  let htmlContent = "<h3>📚 Meine Stellplätze</h3>";
+  let htmlContent =
+    "<h3>📚 Meine Stellplätze (" + filteredPlaces.length + ")</h3>";
 
-  places.forEach(data => {
+  filteredPlaces.forEach(data => {
     const lat = Number(data.latitude);
     const lng = Number(data.longitude);
     const hasGps = Number.isFinite(lat) && Number.isFinite(lng);
