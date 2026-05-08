@@ -748,6 +748,22 @@ function countOpenChecklistItems() {
   return open;
 }
 
+
+function getOpenChecklistItems() {
+  const openItems = [];
+
+  checkboxes.forEach(cb => {
+    if (!cb.checked) {
+      const label = cb.closest(".item");
+      if (label) {
+        openItems.push(label.innerText.trim());
+      }
+    }
+  });
+
+  return openItems;
+}
+
 function nextGuideItem() {
   clearActiveItems();
   currentGuideIndex++;
@@ -758,15 +774,24 @@ function nextGuideItem() {
     updateProgress();
     renderSavedStellplatz();
 
-    const openItems = countOpenChecklistItems();
+    const openItems = getOpenChecklistItems();
 
-    if (openItems === 0) {
+    if (openItems.length === 0) {
       voiceStatus.innerHTML = "✅ Sprach-Check beendet. Alle Punkte sind erledigt.";
       speak("Sprach-Check beendet. Alle Punkte sind erledigt. Gute Fahrt Reinhold, Uschi und Molly!");
     } else {
+      const openText = openItems.join(". ");
       voiceStatus.innerHTML =
-        "⚠️ Sprach-Check beendet. Es sind noch <b>" + openItems + "</b> Punkte offen.";
-      speak("Sprach-Check beendet. Achtung, es sind noch " + openItems + " Punkte offen.");
+        "⚠️ Sprach-Check beendet. Es sind noch <b>" + openItems.length + "</b> Punkte offen:<br><br>" +
+        openItems.map(item => "• " + item).join("<br>");
+
+      speak(
+        "Sprach-Check beendet. Achtung, es sind noch " +
+        openItems.length +
+        " Punkte offen. " +
+        openText +
+        "."
+      );
     }
 
     return;
