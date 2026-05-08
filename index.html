@@ -255,7 +255,7 @@ footer {
 <div class="topbar">
   <button class="speak" onclick="startVoiceGuide()">🎤 Sprach-Check starten</button>
   <button class="print" onclick="repeatCurrentItem()">🔁 Wiederholen</button>
-  <button class="print" onclick="skipToNextItem()">⏭️ Weiter</button>
+  <button class="print" onclick="skipToNextItem()">⏭️ Überspringen</button>
   <button class="reset" onclick="pauseVoiceGuide()">⏸️ Pause</button>
   <button class="reset" onclick="resetChecklist()">Alles zurücksetzen</button>
   <button class="print" onclick="window.print()">Drucken</button>
@@ -727,7 +727,7 @@ function startVoiceGuide() {
 
   if (guideItems.length === 0) {
     voiceStatus.innerHTML = "✅ Alles erledigt. Gute Fahrt!";
-    speak("Super. Alle Punkte sind erledigt. Gute Fahrt wünschen Reinhold Uschi und Molly!");
+    speak("Super. Alle Punkte sind erledigt. Gute Fahrt Reinhold, Uschi und Molly!");
     return;
   }
 
@@ -736,7 +736,16 @@ function startVoiceGuide() {
   lastSpokenSection = "";
 
   voiceStatus.innerHTML = "🎤 Sprach-Check läuft. Hake jeden vorgelesenen Punkt einfach per Klick auf das Kästchen ab.";
-  speak("Hallo Camper, der Sprach-Check startet jetzt. Wenn ein Punkt erledigt ist, klicke einfach auf das Kästchen.", nextGuideItem);
+  speak("Hallo Reinhold, der Sprach-Check startet jetzt. Wenn ein Punkt erledigt ist, klicke einfach auf das Kästchen.", nextGuideItem);
+}
+
+
+function countOpenChecklistItems() {
+  let open = 0;
+  checkboxes.forEach(cb => {
+    if (!cb.checked) open++;
+  });
+  return open;
 }
 
 function nextGuideItem() {
@@ -746,10 +755,20 @@ function nextGuideItem() {
   if (currentGuideIndex >= guideItems.length) {
     isVoiceGuideRunning = false;
     lastSpokenSection = "";
-    voiceStatus.innerHTML = "✅ Sprach-Check beendet. Alle abgefragten Punkte sind erledigt.";
-    speak("Sprach-Check beendet. Alle abgefragten Punkte sind erledigt. Gute Fahrt wünschen Reinhold Uschi und Molly!");
     updateProgress();
-renderSavedStellplatz();
+    renderSavedStellplatz();
+
+    const openItems = countOpenChecklistItems();
+
+    if (openItems === 0) {
+      voiceStatus.innerHTML = "✅ Sprach-Check beendet. Alle Punkte sind erledigt.";
+      speak("Sprach-Check beendet. Alle Punkte sind erledigt. Gute Fahrt Reinhold, Uschi und Molly!");
+    } else {
+      voiceStatus.innerHTML =
+        "⚠️ Sprach-Check beendet. Es sind noch <b>" + openItems + "</b> Punkte offen.";
+      speak("Sprach-Check beendet. Achtung, es sind noch " + openItems + " Punkte offen.");
+    }
+
     return;
   }
 
@@ -806,7 +825,9 @@ function skipToNextItem() {
     guideItems[currentGuideIndex].label.classList.remove("active");
   }
 
-  nextGuideItem();
+  speak("Punkt übersprungen.", () => {
+    setTimeout(nextGuideItem, 150);
+  });
 }
 
 function pauseVoiceGuide() {
@@ -820,7 +841,7 @@ function speakChecklist() {
   buildGuideItems();
 
   if (guideItems.length === 0) {
-    speak("Super. Alle Punkte der Wohnmobil Checkliste sind erledigt. Gute Fahrt wünschen Reinhold Uschi und Molly!");
+    speak("Super. Alle Punkte der Wohnmobil Checkliste sind erledigt. Gute Fahrt Reinhold, Uschi und Molly!");
   } else {
     let grouped = {};
     guideItems.forEach(item => {
