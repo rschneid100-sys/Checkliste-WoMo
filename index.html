@@ -157,6 +157,50 @@ h2 {
   transition: width 0.2s ease;
 }
 
+
+.stellplatz-box {
+  display: grid;
+  gap: 10px;
+}
+
+.stellplatz-box input,
+.stellplatz-box textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  font-size: 16px;
+  font-family: Arial, sans-serif;
+}
+
+.stellplatz-box textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.stellplatz-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.stellplatz-actions button {
+  width: 100%;
+}
+
+.stellplatz-card {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 12px;
+  margin-top: 10px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.stellplatz-card b {
+  color: var(--main-dark);
+}
+
 footer {
   text-align: center;
   color: var(--muted);
@@ -183,7 +227,7 @@ footer {
 <body>
 <header>
   <h1>🚐 Wohnmobil-Checkliste</h1>
-  <p>Für Laika, Reisen, Stellplatz und Fellnase 🐶</p>
+  <p>Für Laika, Reisen, Stellplatz und Molly 🐶</p>
 </header>
 
 <main>
@@ -200,8 +244,12 @@ footer {
 
 <div class="topbar">
   <button class="speak" onclick="startVoiceGuide()">🎤 Sprach-Check starten</button>
+  <button class="print" onclick="repeatCurrentItem()">🔁 Wiederholen</button>
+  <button class="print" onclick="skipToNextItem()">⏭️ Weiter</button>
+  <button class="reset" onclick="pauseVoiceGuide()">⏸️ Pause</button>
   <button class="reset" onclick="resetChecklist()">Alles zurücksetzen</button>
   <button class="print" onclick="window.print()">Drucken</button>
+  <button class="speak" onclick="scrollToStellplatz()">📍 Stellplatz</button>
 </div>
 
 <section>
@@ -243,7 +291,7 @@ footer {
 </section>
 
 <section>
-  <h2>🐶 Fellnase</h2>
+  <h2>🐶 Molly</h2>
   <label class="item"><input type="checkbox"> Leine und Geschirr eingepackt</label>
   <label class="item"><input type="checkbox"> Futter und Näpfe dabei</label>
   <label class="item"><input type="checkbox"> Wasser für unterwegs dabei</label>
@@ -269,6 +317,31 @@ footer {
   <label class="item"><input type="checkbox"> Navi / Route starten</label>
 </section>
 
+
+<section id="stellplatzSection">
+  <h2>📍 Aktuellen Stellplatz speichern</h2>
+  <div class="stellplatz-box">
+    <input id="platzName" type="text" placeholder="Name des Stellplatzes, z. B. Breitmatten Lahr">
+
+    <input id="platzAdresse" type="text" placeholder="Adresse oder Ort (optional)">
+
+    <input id="platzGPS" type="text" placeholder="GPS manuell eingeben, z. B. 48.339000,7.873000 (optional)">
+
+    <textarea id="platzNotiz" placeholder="Notiz, z. B. ruhig, Strom vorhanden, gut für Molly, schöne Radwege"></textarea>
+
+    <div class="stellplatz-actions">
+      <button class="speak" onclick="getCurrentLocation()">📡 Standort holen</button>
+      <button class="print" onclick="saveStellplatz()">💾 Speichern</button>
+    </div>
+
+    <p id="gpsStatus" style="font-size:16px; color:#374151; margin:6px 0;">
+      Noch kein Standort erfasst.
+    </p>
+
+    <div id="savedStellplatz"></div>
+  </div>
+</section>
+
 </main>
 
 <footer>
@@ -281,10 +354,185 @@ const progressBar = document.getElementById("progressBar");
 const progressText = document.getElementById("progressText");
 const voiceStatus = document.getElementById("voiceStatus");
 
+let currentLatitude = null;
+let currentLongitude = null;
+
 let guideItems = [];
 let currentGuideIndex = -1;
-let recognition = null;
-let waitingForAnswer = false;
+let isVoiceGuideRunning = false;
+let lastSpokenSection = "";
+
+
+function scrollToStellplatz() {
+  const section = document.getElementById("stellplatzSection");
+  if (section) {
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+function getCurrentLocation() {
+  const gpsStatus = document.getElementById("gpsStatus");
+
+  if (!navigator.geolocation) {
+    gpsStatus.innerHTML = "⚠️ Dein Gerät unterstützt keine Standortermittlung.";
+    speak("Dein Gerät unterstützt keine Standortermittlung.");
+    return;
+  }
+
+  gpsStatus.innerHTML = "📡 Standort wird ermittelt ...";
+  speak("Ich ermittle deinen aktuellen Stellplatz.");
+
+  navigator.geolocation.getCurrentPosition(
+    position => {
+      currentLatitude = Number(position.coords.latitude);
+      currentLongitude = Number(position.coords.longitude);
+
+      gpsStatus.innerHTML =
+        "✅ Standort erfasst:<br>" +
+        "Breite: " + currentLatitude.toFixed(6) + "<br>" +
+        "Länge: " + currentLongitude.toFixed(6) + "<br>" +
+        "Genauigkeit: ca. " + Math.round(position.coords.accuracy) + " Meter";
+    },
+    error => {
+      gpsStatus.innerHTML =
+        "⚠️ Standort konnte nicht ermittelt werden. Bitte Standortfreigabe erlauben.";
+      speak("Der Standort konnte nicht ermittelt werden. Bitte Standortfreigabe erlauben.");
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    }
+  );
+}
+
+function saveStellplatz() {
+  const name = document.getElementById("platzName").value.trim();
+  const adresse = document.getElementById("platzAdresse").value.trim();
+  const gpsInput = document.getElementById("platzGPS").value.trim();
+  const note = document.getElementById("platzNotiz").value.trim();
+
+  if (!name) {
+    alert("Bitte zuerst einen Namen für den Stellplatz eingeben.");
+    return;
+  }
+
+  let lat = currentLatitude;
+  let lng = currentLongitude;
+
+  // Manuelle GPS-Eingabe überschreibt den aktuellen Standort
+  if (gpsInput) {
+    const parts = gpsInput.split(",");
+
+    if (parts.length === 2) {
+      lat = Number(parts[0].trim());
+      lng = Number(parts[1].trim());
+    }
+  }
+
+  const places = JSON.parse(localStorage.getItem("wohnmobil_stellplaetze") || "[]");
+
+  const data = {
+    id: Date.now(),
+    name: name,
+    adresse: adresse,
+    note: note,
+    latitude: lat,
+    longitude: lng,
+    date: new Date().toLocaleString("de-DE")
+  };
+
+  places.unshift(data);
+
+  localStorage.setItem(
+    "wohnmobil_stellplaetze",
+    JSON.stringify(places)
+  );
+
+  document.getElementById("platzName").value = "";
+  document.getElementById("platzAdresse").value = "";
+  document.getElementById("platzGPS").value = "";
+  document.getElementById("platzNotiz").value = "";
+
+  document.getElementById("gpsStatus").innerHTML =
+    "Noch kein Standort erfasst.";
+
+  currentLatitude = null;
+  currentLongitude = null;
+
+  renderSavedStellplatz();
+  speak("Stellplatz gespeichert.");
+}
+
+function deleteStellplatz(id) {
+  if (!confirm("Diesen Stellplatz wirklich löschen?")) {
+    return;
+  }
+
+  let places = JSON.parse(localStorage.getItem("wohnmobil_stellplaetze") || "[]");
+  places = places.filter(item => Number(item.id) !== Number(id));
+
+  localStorage.setItem("wohnmobil_stellplaetze", JSON.stringify(places));
+  renderSavedStellplatz();
+  speak("Der Stellplatz wurde gelöscht.");
+}
+
+function openMaps(latitude, longitude) {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    alert("Für diesen Stellplatz sind keine gültigen GPS-Daten gespeichert.");
+    return;
+  }
+
+  // Für iPhone/Safari zuverlässiger:
+  // Die Koordinaten werden als Suchziel UND als Kartenmittelpunkt übergeben.
+  const coords = lat.toFixed(6) + "," + lng.toFixed(6);
+  const url = "https://www.google.com/maps?q=" + encodeURIComponent(coords);
+
+  window.location.href = url;
+}
+
+function renderSavedStellplatz() {
+  const container = document.getElementById("savedStellplatz");
+
+  if (!container) return;
+
+  const places = JSON.parse(localStorage.getItem("wohnmobil_stellplaetze") || "[]");
+
+  if (places.length === 0) {
+    container.innerHTML = "<p>Noch keine Stellplätze gespeichert.</p>";
+    return;
+  }
+
+  let htmlContent = "<h3>📚 Meine Stellplätze</h3>";
+
+  places.forEach(data => {
+    const lat = Number(data.latitude);
+    const lng = Number(data.longitude);
+    const hasGps = Number.isFinite(lat) && Number.isFinite(lng);
+
+    htmlContent +=
+      '<div class="stellplatz-card">' +
+      '<b>📍 ' + data.name + '</b><br>' +
+      '🕒 ' + data.date + '<br>' +
+      (data.adresse ? '📌 ' + data.adresse + '<br>' : '') +
+      (data.note ? '📝 ' + data.note + '<br>' : '') +
+      (hasGps
+        ? '🌐 ' + lat.toFixed(6) + ', ' + lng.toFixed(6)
+        : '🌐 Keine GPS-Daten gespeichert') +
+      (hasGps
+        ? '<p><button class="print" onclick="openMaps(' + lat + ',' + lng + ')">🗺️ In Google Maps öffnen</button></p>' +
+          '<p><a target="_blank" href="https://maps.apple.com/?q=' + lat.toFixed(6) + ',' + lng.toFixed(6) + '">🍎 In Apple Karten öffnen</a></p>' +
+          '<p style="font-size:14px;color:#6b7280;">GPS-Test: ' + lat.toFixed(6) + ', ' + lng.toFixed(6) + '</p>'
+        : '') +
+      '<button class="reset" style="margin-top:10px;" onclick="deleteStellplatz(' + data.id + ')">🗑️ Löschen</button>' +
+      '</div>';
+  });
+
+  container.innerHTML = htmlContent;
+}
 
 function updateProgress() {
   let checked = 0;
@@ -302,12 +550,25 @@ function updateProgress() {
 
 checkboxes.forEach((cb, index) => {
   cb.checked = localStorage.getItem("wohnmobil_check_" + index) === "true";
-  cb.addEventListener("change", updateProgress);
+
+  cb.addEventListener("change", () => {
+    updateProgress();
+renderSavedStellplatz();
+
+    if (isVoiceGuideRunning && currentGuideIndex >= 0) {
+      const currentItem = guideItems[currentGuideIndex];
+
+      if (currentItem && cb === currentItem.checkbox && cb.checked) {
+        currentItem.label.classList.remove("active");
+        setTimeout(nextGuideItem, 250);
+      }
+    }
+  });
 });
 
 function cleanForSpeech(text) {
   return text
-    .replace(/[🚐🐶🚦🏠🔌🏕️✅🎤🌳]/g, "")
+    .replace(/[🚐🐶🚦🏠🔌🏕️✅🎤🌳⏸️🔁⏭️]/g, "")
     .replace(/Kapitel:\s*/g, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -323,7 +584,7 @@ function speak(text, afterSpeak) {
 
   const speech = new SpeechSynthesisUtterance(cleanForSpeech(text));
   speech.lang = "de-DE";
-  speech.rate = 0.92;
+  speech.rate = 0.85;
   speech.pitch = 1;
   speech.onend = function() {
     if (afterSpeak) afterSpeak();
@@ -363,96 +624,100 @@ function startVoiceGuide() {
 
   if (guideItems.length === 0) {
     voiceStatus.innerHTML = "✅ Alles erledigt. Gute Fahrt!";
-    speak("Super. Alle Punkte sind erledigt. Gute Fahrt!");
+    speak("Super. Alle Punkte sind erledigt. Gute Fahrt Reinhold, Uschi und Molly!");
     return;
   }
 
   currentGuideIndex = -1;
-  voiceStatus.innerHTML = "🎤 Sprach-Check läuft. Nach jedem Punkt bitte <b>„erledigt“</b> sagen.";
-  speak("Sprach-Check gestartet.", nextGuideItem);
+  isVoiceGuideRunning = true;
+  lastSpokenSection = "";
+
+  voiceStatus.innerHTML = "🎤 Sprach-Check läuft. Hake jeden vorgelesenen Punkt einfach per Klick auf das Kästchen ab.";
+  speak("Hallo Reinhold, der Sprach-Check startet jetzt. Wenn ein Punkt erledigt ist, klicke einfach auf das Kästchen.", nextGuideItem);
 }
 
 function nextGuideItem() {
-  waitingForAnswer = false;
   clearActiveItems();
   currentGuideIndex++;
 
   if (currentGuideIndex >= guideItems.length) {
+    isVoiceGuideRunning = false;
+    lastSpokenSection = "";
     voiceStatus.innerHTML = "✅ Sprach-Check beendet. Alle abgefragten Punkte sind erledigt.";
-    speak("Sprach Check beendet. Alle abgefragten Punkte sind erledigt. Gute Fahrt!");
+    speak("Sprach-Check beendet. Alle abgefragten Punkte sind erledigt. Gute Fahrt Reinhold, Uschi und Molly!");
     updateProgress();
+renderSavedStellplatz();
     return;
   }
 
   const item = guideItems[currentGuideIndex];
+
+  if (item.checkbox.checked) {
+    nextGuideItem();
+    return;
+  }
+
   item.label.classList.add("active");
   item.label.scrollIntoView({ behavior: "smooth", block: "center" });
 
-  const spoken = "Kapitel: " + item.section + ". Punkt: " + item.text + ". Wenn erledigt, sage bitte: erledigt.";
-  voiceStatus.innerHTML = "Aktueller Punkt:<br><b>" + item.section + "</b><br>" + item.text + "<br><br>Bitte sage: <b>erledigt</b>";
-  speak(spoken, listenForDone);
+  voiceStatus.innerHTML =
+    "Aktueller Punkt:<br><b>" + item.section + "</b><br>" +
+    item.text + "<br><br>Bitte Kästchen anklicken, wenn erledigt.";
+
+  let spoken = "";
+
+  if (item.section !== lastSpokenSection) {
+    spoken = item.section + " – " + item.text + ".";
+    lastSpokenSection = item.section;
+  } else {
+    spoken = item.text + ".";
+  }
+
+  speak(spoken);
 }
 
-function listenForDone() {
-  waitingForAnswer = true;
-
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-  if (!SpeechRecognition) {
-    voiceStatus.innerHTML += "<br><br>⚠️ Spracheingabe wird von diesem Browser nicht unterstützt. Du kannst den Punkt manuell abhaken.";
+function repeatCurrentItem() {
+  if (currentGuideIndex < 0 || currentGuideIndex >= guideItems.length) {
+    speak("Es ist gerade kein aktiver Punkt zum Wiederholen vorhanden.");
     return;
   }
 
-  recognition = new SpeechRecognition();
-  recognition.lang = "de-DE";
-  recognition.continuous = false;
-  recognition.interimResults = false;
+  const item = guideItems[currentGuideIndex];
 
-  recognition.onstart = function() {
-    voiceStatus.innerHTML += "<br><br>🎧 Ich höre zu...";
-  };
+  if (!item) {
+    speak("Es ist gerade kein aktiver Punkt zum Wiederholen vorhanden.");
+    return;
+  }
 
-  recognition.onresult = function(event) {
-    const text = event.results[0][0].transcript.toLowerCase();
-    voiceStatus.innerHTML += "<br>Du hast gesagt: <b>" + text + "</b>";
-
-    if (text.includes("erledigt") || text.includes("fertig") || text.includes("ja") || text.includes("okay")) {
-      markCurrentDone();
-    } else if (text.includes("weiter")) {
-      nextGuideItem();
-    } else {
-      speak("Ich habe dich nicht sicher verstanden. Bitte sage: erledigt.", listenForDone);
-    }
-  };
-
-  recognition.onerror = function() {
-    voiceStatus.innerHTML += "<br>⚠️ Ich konnte dich nicht verstehen. Bitte erneut versuchen.";
-    speak("Ich konnte dich nicht verstehen. Bitte sage noch einmal: erledigt.", listenForDone);
-  };
-
-  recognition.onend = function() {
-    waitingForAnswer = false;
-  };
-
-  recognition.start();
+  const spoken = item.section + " – " + item.text + ".";
+  speak(spoken);
 }
 
-function markCurrentDone() {
-  const item = guideItems[currentGuideIndex];
-  if (item) {
-    item.checkbox.checked = true;
-    localStorage.setItem("wohnmobil_check_" + Array.from(checkboxes).indexOf(item.checkbox), "true");
-    updateProgress();
-    item.label.classList.remove("active");
-    speak("Erledigt gespeichert.", nextGuideItem);
+function skipToNextItem() {
+  if (!isVoiceGuideRunning) {
+    speak("Der Sprach-Check ist gerade nicht gestartet.");
+    return;
   }
+
+  if (currentGuideIndex >= 0 && currentGuideIndex < guideItems.length) {
+    guideItems[currentGuideIndex].label.classList.remove("active");
+  }
+
+  nextGuideItem();
+}
+
+function pauseVoiceGuide() {
+  window.speechSynthesis.cancel();
+  isVoiceGuideRunning = false;
+  clearActiveItems();
+  voiceStatus.innerHTML = "⏸️ Sprach-Check pausiert. Zum Fortsetzen bitte erneut „Sprach-Check starten“ drücken.";
 }
 
 function speakChecklist() {
   buildGuideItems();
 
   if (guideItems.length === 0) {
-    speak("Super. Alle Punkte der Wohnmobil Checkliste sind erledigt. Gute Fahrt!");
+    speak("Super. Alle Punkte der Wohnmobil Checkliste sind erledigt. Gute Fahrt Reinhold, Uschi und Molly!");
   } else {
     let grouped = {};
     guideItems.forEach(item => {
@@ -462,7 +727,7 @@ function speakChecklist() {
 
     let text = "Es sind noch " + guideItems.length + " Punkte offen. ";
     Object.keys(grouped).forEach(section => {
-      text += "Kapitel: " + section + ". ";
+      text += section + ". ";
       text += grouped[section].join(". ") + ". ";
     });
     speak(text);
@@ -471,16 +736,28 @@ function speakChecklist() {
 
 function resetChecklist() {
   if (confirm("Wirklich alle Häkchen zurücksetzen?")) {
+    window.speechSynthesis.cancel();
+    isVoiceGuideRunning = false;
+    currentGuideIndex = -1;
+    lastSpokenSection = "";
+
     checkboxes.forEach((cb, index) => {
       cb.checked = false;
       localStorage.removeItem("wohnmobil_check_" + index);
     });
+
     clearActiveItems();
     updateProgress();
+renderSavedStellplatz();
+
+    voiceStatus.innerHTML =
+      "Drücke <b>„Sprach-Check starten“</b>. Die App liest jeden offenen Punkt vor. " +
+      "Den Punkt erledigst du einfach per Klick auf das Kästchen.";
   }
 }
 
 updateProgress();
+renderSavedStellplatz();
 </script>
 
 </body>
