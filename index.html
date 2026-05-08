@@ -847,12 +847,18 @@ function skipToNextItem() {
   }
 
   if (currentGuideIndex >= 0 && currentGuideIndex < guideItems.length) {
-    guideItems[currentGuideIndex].label.classList.remove("active");
+    const currentItem = guideItems[currentGuideIndex];
+
+    if (currentItem && currentItem.label) {
+      currentItem.label.classList.remove("active");
+    }
   }
 
-  speak("Punkt übersprungen.", () => {
-    setTimeout(nextGuideItem, 150);
-  });
+  speak("Punkt übersprungen.");
+
+  setTimeout(() => {
+    nextGuideItem();
+  }, 300);
 }
 
 function pauseVoiceGuide() {
