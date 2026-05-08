@@ -376,6 +376,7 @@ const voiceStatus = document.getElementById("voiceStatus");
 
 let currentLatitude = null;
 let currentLongitude = null;
+let editingStellplatzId = null;
 
 let guideItems = [];
 let currentGuideIndex = -1;
@@ -426,6 +427,7 @@ function getCurrentLocation() {
   );
 }
 
+
 function saveStellplatz() {
   const name = document.getElementById("platzName").value.trim();
   const adresse = document.getElementById("platzAdresse").value.trim();
@@ -440,7 +442,6 @@ function saveStellplatz() {
   let lat = currentLatitude;
   let lng = currentLongitude;
 
-  // Manuelle GPS-Eingabe überschreibt den aktuellen Standort
   if (gpsInput) {
     const parts = gpsInput.split(",");
 
@@ -451,6 +452,34 @@ function saveStellplatz() {
   }
 
   const places = JSON.parse(localStorage.getItem("wohnmobil_stellplaetze") || "[]");
+
+  if (editingStellplatzId !== null) {
+    const index = places.findIndex(p => Number(p.id) === Number(editingStellplatzId));
+
+    if (index !== -1) {
+      places[index].name = name;
+      places[index].adresse = adresse;
+      places[index].note = note;
+
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        places[index].latitude = lat;
+        places[index].longitude = lng;
+      }
+
+      places[index].date =
+        new Date().toLocaleString("de-DE") + " (bearbeitet)";
+
+      localStorage.setItem(
+        "wohnmobil_stellplaetze",
+        JSON.stringify(places)
+      );
+
+      resetStellplatzForm();
+      renderSavedStellplatz();
+      speak("Stellplatz aktualisiert.");
+      return;
+    }
+  }
 
   const data = {
     id: Date.now(),
@@ -469,6 +498,47 @@ function saveStellplatz() {
     JSON.stringify(places)
   );
 
+  resetStellplatzForm();
+  renderSavedStellplatz();
+  speak("Stellplatz gespeichert.");
+}
+
+
+
+function editStellplatz(id) {
+  const places = JSON.parse(localStorage.getItem("wohnmobil_stellplaetze") || "[]");
+  const data = places.find(item => Number(item.id) === Number(id));
+
+  if (!data) {
+    alert("Stellplatz nicht gefunden.");
+    return;
+  }
+
+  editingStellplatzId = id;
+
+  document.getElementById("platzName").value = data.name || "";
+  document.getElementById("platzAdresse").value = data.adresse || "";
+  document.getElementById("platzNotiz").value = data.note || "";
+
+  if (
+    Number.isFinite(Number(data.latitude)) &&
+    Number.isFinite(Number(data.longitude))
+  ) {
+    document.getElementById("platzGPS").value =
+      Number(data.latitude).toFixed(6) + "," +
+      Number(data.longitude).toFixed(6);
+  }
+
+  document.getElementById("gpsStatus").innerHTML =
+    "✏️ Stellplatz wird bearbeitet. Änderungen unten speichern.";
+
+  scrollToStellplatz();
+  speak("Stellplatz zum Bearbeiten geladen.");
+}
+
+function resetStellplatzForm() {
+  editingStellplatzId = null;
+
   document.getElementById("platzName").value = "";
   document.getElementById("platzAdresse").value = "";
   document.getElementById("platzGPS").value = "";
@@ -479,9 +549,6 @@ function saveStellplatz() {
 
   currentLatitude = null;
   currentLongitude = null;
-
-  renderSavedStellplatz();
-  speak("Stellplatz gespeichert.");
 }
 
 function deleteStellplatz(id) {
@@ -562,6 +629,7 @@ function renderSavedStellplatz() {
           '<p><a target="_blank" href="https://maps.apple.com/?q=' + lat.toFixed(6) + ',' + lng.toFixed(6) + '">🍎 In Apple Karten öffnen</a></p>' +
           '<p style="font-size:14px;color:#6b7280;">GPS-Test: ' + lat.toFixed(6) + ', ' + lng.toFixed(6) + '</p>'
         : '') +
+      '<button class="print" style="margin-top:10px;" onclick="editStellplatz(' + data.id + ')">✏️ Bearbeiten</button>' +
       '<button class="reset" style="margin-top:10px;" onclick="deleteStellplatz(' + data.id + ')">🗑️ Löschen</button>' +
       '</div>';
   });
